@@ -1,0 +1,52 @@
+# =============================================
+# docker-compose.yml — finanzas personales
+# Servicios: PostgreSQL + Spring Boot app
+# =============================================
+services:
+
+  postgres:
+    build:
+      context: .                          # Raíz del proyecto (para que COPY acceda a src/)
+      dockerfile: docker/postgres/Dockerfile
+    image: finanzas-postgres:latest       # Nombre de la imagen generada
+    container_name: finanzas_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: finanzas_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"                       # Mapea al puerto que usa application.properties
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # Persistencia de datos entre reinicios
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d finanzas_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Servicio: Spring Boot app ----
+  app:
+    build:
+      context: .                            # Raíz del proyecto
+      dockerfile: docker/app/Dockerfile
+    image: finanzas-app:latest
+    container_name: finanzas_app
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      # Sobreescribir el host de la BD: dentro de Docker el host es el nombre del servicio
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/finanzas_db
+      SPRING_R2DBC_USERNAME: postgres
+      SPRING_R2DBC_PASSWORD: postgres
+      # JWT — se puede cambiar en producción sin tocar el código
+      APP_JWT_SECRET: clave-secreta-finanzas-personales-2026-cambiar-en-produccion
+      APP_JWT_EXPIRATION_MS: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy          # Espera a que PostgreSQL esté listo
+
+volumes:
+  postgres_data:
+    driver: local

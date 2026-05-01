@@ -13,8 +13,8 @@ WORKDIR /app
 # Docker cachea esta capa; solo se invalida si cambian las dependencias.
 COPY gradlew .
 COPY gradle/ gradle/
-COPY build.gradle.kts .
-COPY settings.gradle.kts .
+COPY build.gradle .
+COPY settings.gradle .
 
 # Dar permiso de ejecución al wrapper y pre-descargar dependencias
 RUN chmod +x gradlew
@@ -38,4 +38,4 @@ EXPOSE 9000
 # Opciones de JVM recomendadas para contenedores:
 #   -XX:+UseContainerSupport  → respeta los límites de memoria del contenedor
 #   -XX:MaxRAMPercentage=75.0 → usa hasta el 75 % de la RAM asignada
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-default}", "-jar", "app.jar"]

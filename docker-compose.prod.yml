@@ -1,0 +1,23 @@
+# =============================================
+# docker-compose.prod.yml — deploy producción / Azure
+# Usa profile "prod" y variables de entorno externas
+# Uso: docker compose -f docker-compose.prod.yml up -d
+# =============================================
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    image: finanzas-app:latest
+    container_name: finanzas_app
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      SPRING_PROFILES_ACTIVE: desarrollo
+      SPRING_R2DBC_URL: ${SPRING_R2DBC_URL}
+      SPRING_R2DBC_USERNAME: ${SPRING_R2DBC_USERNAME}
+      SPRING_R2DBC_PASSWORD: ${SPRING_R2DBC_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}

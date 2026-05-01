@@ -1,8 +1,8 @@
-package com.finanzas.personales.finanzas.security;
+package com.finanzas.personales.finanzas.security.infrastructure.adapter.in;
 
+import com.finanzas.personales.finanzas.security.domain.port.TokenServicePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 /**
- * Filtro reactivo de seguridad que intercepta cada petición HTTP para validar el token JWT.
+ * Adaptador de entrada (input adapter) que intercepta cada petición HTTP para validar el token JWT.
  * Si el header {@code Authorization: Bearer <token>} es válido, establece el contexto
  * de seguridad de Spring para la solicitud actual. Implementa {@link WebFilter} de WebFlux.
  */
@@ -23,8 +23,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthFilter implements WebFilter {
 
-    /** Servicio encargado de validar y extraer datos del JWT. */
-    private final JwtService jwtService;
+    /** Puerto del dominio para operaciones de token. */
+    private final TokenServicePort tokenServicePort;
 
     /**
      * Intercepta cada solicitud HTTP, extrae el JWT del header Authorization
@@ -46,18 +46,19 @@ public class JwtAuthFilter implements WebFilter {
         String token = authHeader.substring(7);
 
         // Validar el token; si es inválido, continuar sin autenticación
-        if (!jwtService.isTokenValid(token)) {
+        if (!tokenServicePort.isTokenValid(token)) {
             return chain.filter(exchange);
         }
 
-        // Extraer email y rol del token para construir la autenticación
-        String email = jwtService.extractEmail(token);
-        String role = jwtService.extractRole(token);
+        // Extraer userId, email y rol del token para construir la autenticación
+        String userId = tokenServicePort.extractId(token);
+        String email = tokenServicePort.extractEmail(token);
+        String role = tokenServicePort.extractRole(token);
 
-        // Construir el objeto de autenticación con el rol como authority
+        // Construir el objeto de autenticación con userId como principal y email como credentials
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userId,
                 email,
-                null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role))
         );
 

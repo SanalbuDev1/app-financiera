@@ -35,3 +35,12 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment variables ###
+.env
+
+### Docs con credenciales ###
+docs/deploy-azure.md
+.env.*
+!.env.example
+.credentials-*

@@ -7,7 +7,7 @@ import com.finanzas.personales.finanzas.auth.domain.usecase.UnauthorizedExceptio
 import com.finanzas.personales.finanzas.auth.infrastructure.dto.LoginRequest;
 import com.finanzas.personales.finanzas.auth.infrastructure.dto.RegisterRequest;
 import com.finanzas.personales.finanzas.auth.infrastructure.dto.UserResponse;
-import com.finanzas.personales.finanzas.security.JwtService;
+import com.finanzas.personales.finanzas.security.domain.port.TokenServicePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,8 +42,8 @@ public class AuthController {
     /** Caso de uso del dominio para registrar nuevos usuarios. */
     private final RegisterUseCase registerUseCase;
 
-    /** Servicio de infraestructura para generar el token JWT tras la autenticación. */
-    private final JwtService jwtService;
+    /** Puerto del dominio de seguridad para generar el token de autenticación. */
+    private final TokenServicePort tokenServicePort;
 
     /**
      * Autentica a un usuario existente y devuelve sus datos junto con un JWT.
@@ -58,7 +58,7 @@ public class AuthController {
         return loginUseCase.execute(request.getEmail(), request.getPassword())
                 .map(user -> {
                     // Generar JWT para el usuario autenticado
-                    String token = jwtService.generateToken(user);
+                    String token = tokenServicePort.generateToken(user);
                     log.info("[LOGIN] Login exitoso para email: {}, userId: {}", user.getEmail(), user.getId());
                     return ResponseEntity.ok(UserResponse.from(user, token));
                 })
@@ -82,7 +82,7 @@ public class AuthController {
         return registerUseCase.execute(request.getEmail(), request.getPassword(), request.getName())
                 .map(user -> {
                     // Generar JWT para el usuario recién registrado
-                    String token = jwtService.generateToken(user);
+                    String token = tokenServicePort.generateToken(user);
                     log.info("[REGISTER] Registro exitoso para email: {}, userId: {}", user.getEmail(), user.getId());
                     return ResponseEntity.status(HttpStatus.CREATED)
                             .<UserResponse>body(UserResponse.from(user, token));

@@ -1,6 +1,7 @@
-package com.finanzas.personales.finanzas.security;
+package com.finanzas.personales.finanzas.security.infrastructure.service;
 
 import com.finanzas.personales.finanzas.auth.domain.model.User;
+import com.finanzas.personales.finanzas.security.domain.port.TokenServicePort;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -12,12 +13,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * Servicio responsable de la generación y validación de tokens JWT.
- * Utiliza la librería JJWT. El secret y la expiración se leen desde
- * {@code application.properties} para no tener valores hardcodeados.
+ * Implementación del puerto {@link TokenServicePort} usando la librería JJWT.
+ * Genera y valida tokens JWT con firma HMAC-SHA. El secret y la expiración
+ * se leen desde {@code application.properties} para no tener valores hardcodeados.
  */
 @Service
-public class JwtService {
+public class JwtService implements TokenServicePort {
 
     /** Secret para firmar el JWT, leído desde application.properties. */
     @Value("${app.jwt.secret}")
@@ -34,6 +35,7 @@ public class JwtService {
      * @param user modelo de dominio del usuario
      * @return token JWT firmado como String
      */
+    @Override
     public String generateToken(User user) {
         // Construir la clave HMAC-SHA a partir del secret configurado
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
@@ -71,6 +73,7 @@ public class JwtService {
      * @param token token JWT a validar
      * @return {@code true} si el token es válido, {@code false} si no
      */
+    @Override
     public boolean isTokenValid(String token) {
         try {
             extractClaims(token);
@@ -87,8 +90,20 @@ public class JwtService {
      * @param token token JWT
      * @return email del usuario
      */
+    @Override
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    /**
+     * Extrae el ID (UUID) del usuario del token JWT.
+     *
+     * @param token token JWT
+     * @return id del usuario como String
+     */
+    @Override
+    public String extractId(String token) {
+        return extractClaims(token).get("id", String.class);
     }
 
     /**
@@ -97,6 +112,7 @@ public class JwtService {
      * @param token token JWT
      * @return rol como String (ej. "ADMIN", "USER")
      */
+    @Override
     public String extractRole(String token) {
         return extractClaims(token).get("role", String.class);
     }

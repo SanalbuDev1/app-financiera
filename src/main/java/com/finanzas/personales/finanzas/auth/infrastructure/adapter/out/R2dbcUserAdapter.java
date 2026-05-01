@@ -3,30 +3,35 @@ package com.finanzas.personales.finanzas.auth.infrastructure.adapter.out;
 import com.finanzas.personales.finanzas.auth.domain.model.User;
 import com.finanzas.personales.finanzas.auth.domain.model.UserRole;
 import com.finanzas.personales.finanzas.auth.domain.port.UserRepositoryPort;
-import com.finanzas.personales.finanzas.auth.infrastructure.entity.UserEntity;
+import com.finanzas.personales.finanzas.config.SqlQueryLoader;
+import io.r2dbc.spi.Row;
+import io.r2dbc.spi.RowMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
-import org.springframework.data.relational.core.query.Criteria;
-import org.springframework.data.relational.core.query.Query;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 /**
  * Adaptador de salida (output adapter) que implementa {@link UserRepositoryPort}
  * usando R2DBC para acceso reactivo a PostgreSQL.
- * Traduce entre el modelo de dominio {@code User} y la entidad de infraestructura {@code UserEntity}.
+ * Todos los queries SQL se cargan desde archivos externos en {@code resources/sql/auth/}
+ * mediante {@link SqlQueryLoader}, manteniendo el SQL fuera del código Java.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class R2dbcUserAdapter implements UserRepositoryPort {
 
-    /** Template R2DBC para ejecutar operaciones reactivas sobre la base de datos. */
-    private final R2dbcEntityTemplate r2dbcEntityTemplate;
+    /** Cliente de base de datos para ejecutar queries SQL reactivos. */
+    private final DatabaseClient databaseClient;
+
+    /** Cargador de queries SQL desde archivos del classpath. */
+    private final SqlQueryLoader sqlQueryLoader;
 
     /**
      * Busca un usuario en la base de datos por su email.
+     * Usa el query {@code sql/auth/buscar_usuario_por_email.sql}.
      *
      * @param email correo electrónico a buscar
      * @return {@code Mono<User>} con el usuario encontrado, o vacío si no existe
@@ -34,18 +39,21 @@ public class R2dbcUserAdapter implements UserRepositoryPort {
     @Override
     public Mono<User> findByEmail(String email) {
         log.debug("[R2DBC] Buscando usuario por email: {}", email);
-        return r2dbcEntityTemplate
-                .selectOne(Query.query(Criteria.where("email").is(email)), UserEntity.class)
-                .doOnNext(entity -> log.debug("[R2DBC] Usuario encontrado: {}", entity.getEmail()))
+        String sql = sqlQueryLoader.load("auth/buscar_usuario_por_email");
+        return databaseClient.sql(sql)
+                .bind("email", email)
+                .map(this::mapRowToDomain)
+                .one()
+                .doOnNext(user -> log.debug("[R2DBC] Usuario encontrado: {}", user.getEmail()))
                 .switchIfEmpty(Mono.defer(() -> {
                     log.debug("[R2DBC] Usuario no encontrado para email: {}", email);
                     return Mono.empty();
-                }))
-                .map(this::toDomain);
+                }));
     }
 
     /**
      * Persiste un usuario en la base de datos.
+     * Usa el query {@code sql/auth/registrar_usuario.sql}.
      *
      * @param user modelo de dominio a guardar
      * @return {@code Mono<User>} con el usuario guardado
@@ -53,15 +61,23 @@ public class R2dbcUserAdapter implements UserRepositoryPort {
     @Override
     public Mono<User> save(User user) {
         log.info("[R2DBC] Guardando nuevo usuario: {} (id: {})", user.getEmail(), user.getId());
-        return r2dbcEntityTemplate
-                .insert(toEntity(user))
-                .doOnSuccess(entity -> log.info("[R2DBC] Usuario guardado exitosamente: {}", entity.getEmail()))
+        String sql = sqlQueryLoader.load("auth/registrar_usuario");
+        return databaseClient.sql(sql)
+                .bind("id", user.getId())
+                .bind("email", user.getEmail())
+                .bind("name", user.getName())
+                .bind("password", user.getPassword())
+                .bind("role", user.getRole().name())
+                .fetch()
+                .rowsUpdated()
+                .doOnSuccess(count -> log.info("[R2DBC] Usuario guardado exitosamente: {}", user.getEmail()))
                 .doOnError(ex -> log.error("[R2DBC] Error al guardar usuario {}: {}", user.getEmail(), ex.getMessage()))
-                .map(this::toDomain);
+                .thenReturn(user);
     }
 
     /**
      * Verifica si existe un usuario con el email dado.
+     * Usa el query {@code sql/auth/verificar_existencia_email.sql}.
      *
      * @param email correo electrónico a verificar
      * @return {@code Mono<Boolean>} true si existe, false si no
@@ -69,40 +85,33 @@ public class R2dbcUserAdapter implements UserRepositoryPort {
     @Override
     public Mono<Boolean> existsByEmail(String email) {
         log.debug("[R2DBC] Verificando existencia de email: {}", email);
-        return r2dbcEntityTemplate
-                .exists(Query.query(Criteria.where("email").is(email)), UserEntity.class)
+        String sql = sqlQueryLoader.load("auth/verificar_existencia_email");
+        return databaseClient.sql(sql)
+                .bind("email", email)
+                .map((row, metadata) -> row.get("exists_flag", Boolean.class))
+                .one()
+                .defaultIfEmpty(false)
                 .doOnSuccess(exists -> log.debug("[R2DBC] Email {} existe: {}", email, exists));
     }
 
-    /**
-     * Convierte una entidad de infraestructura al modelo de dominio.
-     *
-     * @param entity entidad R2DBC leída de la base de datos
-     * @return modelo de dominio {@code User}
-     */
-    private User toDomain(UserEntity entity) {
-        return User.builder()
-                .id(entity.getId())
-                .email(entity.getEmail())
-                .name(entity.getName())
-                .password(entity.getPassword())
-                .role(entity.getRole())
-                .build();
-    }
+    // =========================================================
+    // Mapper: Row → Domain
+    // =========================================================
 
     /**
-     * Convierte un modelo de dominio a entidad de infraestructura para persistir.
+     * Mapea una fila del resultado SQL al modelo de dominio {@code User}.
      *
-     * @param user modelo de dominio
-     * @return entidad R2DBC lista para insertar
+     * @param row      fila del resultado SQL
+     * @param metadata metadata de la fila
+     * @return modelo de dominio {@code User}
      */
-    private UserEntity toEntity(User user) {
-        return UserEntity.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .password(user.getPassword())
-                .role(user.getRole())
+    private User mapRowToDomain(Row row, RowMetadata metadata) {
+        return User.builder()
+                .id(row.get("id", String.class))
+                .email(row.get("email", String.class))
+                .name(row.get("name", String.class))
+                .password(row.get("password", String.class))
+                .role(UserRole.valueOf(row.get("role", String.class)))
                 .build();
     }
 }

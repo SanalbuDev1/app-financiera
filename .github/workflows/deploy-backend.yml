@@ -1,0 +1,65 @@
+# =============================================
+# CI/CD Backend — Build + Deploy a Azure Container Apps
+# Se dispara con push a main que toque archivos del backend
+# =============================================
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'docker/app/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'gradlew.bat'
+
+env:
+  IMAGE_NAME: finanzas-app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout del código
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Login en Azure
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 3. Login en Azure Container Registry
+      - name: Login to ACR
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      # 4. Build y push de la imagen Docker
+      - name: Build and push Docker image
+        run: |
+          docker build -f docker/app/Dockerfile -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+
+      # 5. Deploy a Azure Container Apps
+      - name: Deploy to Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          containerAppName: ${{ secrets.AZURE_CONTAINER_APP_NAME }}
+          imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          environmentVariables: >-
+            SPRING_PROFILES_ACTIVE=desarrollo
+            SPRING_R2DBC_URL=${{ secrets.SPRING_R2DBC_URL }}
+            SPRING_R2DBC_USERNAME=${{ secrets.SPRING_R2DBC_USERNAME }}
+            SPRING_R2DBC_PASSWORD=secretref:db-password
+            APP_JWT_SECRET=secretref:jwt-secret
+            APP_CORS_ALLOWED_ORIGINS=${{ secrets.APP_CORS_ALLOWED_ORIGINS }}

@@ -1,5 +1,6 @@
-package com.finanzas.personales.finanzas.security;
+package com.finanzas.personales.finanzas.security.infrastructure.config;
 
+import com.finanzas.personales.finanzas.security.infrastructure.adapter.in.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

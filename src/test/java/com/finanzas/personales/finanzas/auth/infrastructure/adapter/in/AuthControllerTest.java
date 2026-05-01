@@ -6,7 +6,7 @@ import com.finanzas.personales.finanzas.auth.domain.usecase.EmailAlreadyExistsEx
 import com.finanzas.personales.finanzas.auth.domain.usecase.LoginUseCase;
 import com.finanzas.personales.finanzas.auth.domain.usecase.RegisterUseCase;
 import com.finanzas.personales.finanzas.auth.domain.usecase.UnauthorizedException;
-import com.finanzas.personales.finanzas.security.JwtService;
+import com.finanzas.personales.finanzas.security.domain.port.TokenServicePort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Pruebas unitarias para {@link AuthController} usando WebTestClient.
- * Mockea los casos de uso y el JwtService para aislar el controlador.
+ * Mockea los casos de uso y el tokenServicePort para aislar el controlador.
  */
 @WebFluxTest(AuthController.class)
 class AuthControllerTest {
@@ -35,7 +35,7 @@ class AuthControllerTest {
     private RegisterUseCase registerUseCase;
 
     @MockitoBean
-    private JwtService jwtService;
+    private TokenServicePort tokenServicePort;
 
     /** Usuario de dominio reutilizable en los tests. */
     private final User mockUser = User.builder()
@@ -54,7 +54,7 @@ class AuthControllerTest {
     @WithMockUser
     void should_return200WithToken_when_loginIsSuccessful() {
         when(loginUseCase.execute("user@financiera.com", "user123")).thenReturn(Mono.just(mockUser));
-        when(jwtService.generateToken(mockUser)).thenReturn("jwt.token.generado");
+        when(tokenServicePort.generateToken(mockUser)).thenReturn("jwt.token.generado");
 
         webTestClient.post()
                 .uri("/api/auth/login")
@@ -98,7 +98,7 @@ class AuthControllerTest {
     @WithMockUser
     void should_return201WithToken_when_registerIsSuccessful() {
         when(registerUseCase.execute("nuevo@financiera.com", "pass123", "Nuevo")).thenReturn(Mono.just(mockUser));
-        when(jwtService.generateToken(mockUser)).thenReturn("jwt.token.generado");
+        when(tokenServicePort.generateToken(mockUser)).thenReturn("jwt.token.generado");
 
         webTestClient.post()
                 .uri("/api/auth/register")

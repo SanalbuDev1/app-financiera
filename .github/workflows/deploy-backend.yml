@@ -5,6 +5,7 @@
 name: Deploy Backend
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'gradle/**'
       - 'gradlew'
       - 'gradlew.bat'
+      - '.github/workflows/**'
 
 env:
   IMAGE_NAME: finanzas-app

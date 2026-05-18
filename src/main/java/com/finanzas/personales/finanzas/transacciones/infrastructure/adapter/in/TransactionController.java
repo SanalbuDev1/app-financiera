@@ -67,12 +67,12 @@ public class TransactionController {
     @GetMapping
     public Mono<ResponseEntity<TransactionPageResponse<TransactionResponse>>> listTransactions(
             @AuthenticationPrincipal String userId,
-            @RequestParam(required = false) LocalDate from,
-            @RequestParam(required = false) LocalDate to,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) String category,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "15") int size) {
+            @RequestParam(name = "from", required = false) LocalDate from,
+            @RequestParam(name = "to", required = false) LocalDate to,
+            @RequestParam(name = "type", required = false) String type,
+            @RequestParam(name = "category", required = false) String category,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "15") int size) {
 
         log.info("[API] GET /api/transactions - userId: {}, page: {}, size: {}", userId, page, size);
 
@@ -144,8 +144,8 @@ public class TransactionController {
     @GetMapping("/summary")
     public Mono<ResponseEntity<TransactionSummaryResponse>> getSummary(
             @AuthenticationPrincipal String userId,
-            @RequestParam int month,
-            @RequestParam int year) {
+            @RequestParam(name = "month") int month,
+            @RequestParam(name = "year") int year) {
 
         log.info("[API] GET /api/transactions/summary - userId: {}, month: {}/{}", userId, month, year);
 
@@ -213,7 +213,7 @@ public class TransactionController {
     @PutMapping("/{id}")
     public Mono<ResponseEntity<TransactionResponse>> updateTransaction(
             @AuthenticationPrincipal String userId,
-            @PathVariable String id,
+            @PathVariable("id") String id,
             @Valid @RequestBody TransactionRequest request) {
 
         log.info("[API] PUT /api/transactions/{} - userId: {}", id, userId);
@@ -254,7 +254,7 @@ public class TransactionController {
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<Void>> deleteTransaction(
             @AuthenticationPrincipal String userId,
-            @PathVariable String id) {
+            @PathVariable("id") String id) {
 
         log.info("[API] DELETE /api/transactions/{} - userId: {}", id, userId);
 

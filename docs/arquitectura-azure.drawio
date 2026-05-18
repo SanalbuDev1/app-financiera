@@ -1,0 +1,161 @@
+﻿<mxfile host="app.diagrams.net" modified="2026-05-04T00:00:00.000Z" agent="GitHub Copilot" version="24.3.1" type="device">
+  <diagram name="Arquitectura Despliegue Azure" id="finanzas-arch-v3">
+    <mxGraphModel dx="1771" dy="943" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="5R21-3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;fontColor=#0078D4;" value="Arquitectura de Despliegue &#x2014; Finanzas Personales (Azure)" vertex="1">
+          <mxGeometry height="35" width="1614" x="464.83" y="158.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#6c8ebf;strokeWidth=2;arcSize=2;" value="" vertex="1">
+          <mxGeometry height="175" width="1614" x="464.83" y="198.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-5" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#6c8ebf;" value="Pipeline CI/CD &#x2014; .github/workflows/deploy-backend.yml" vertex="1">
+          <mxGeometry height="18" width="560" x="482.83" y="204.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;verticalAlign=middle;" value="Desarrollador" vertex="1">
+          <mxGeometry height="50" width="120" x="486.83" y="240.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292e;strokeColor=#444444;fontColor=#ffffff;fontSize=11;verticalAlign=middle;" value="GitHub Repository&#xa;finanzas/finanzas (main)" vertex="1">
+          <mxGeometry height="50" width="185" x="676.83" y="240.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2088FF;strokeColor=#1060CC;fontColor=#ffffff;fontSize=11;verticalAlign=middle;" value="GitHub Actions Runner&#xa;deploy-backend.yml &#xB7; ubuntu-latest" vertex="1">
+          <mxGeometry height="50" width="220" x="936.83" y="240.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#bdbdbd;fontColor=#333333;fontSize=10;align=left;spacingLeft=8;" value="&#x1F4E5; Checkout c&#xF3;digo" vertex="1">
+          <mxGeometry height="25" width="210" x="1229.83" y="210.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#bdbdbd;fontColor=#333333;fontSize=10;align=left;spacingLeft=8;" value="&#x1F510; Azure Login (Service Principal)" vertex="1">
+          <mxGeometry height="25" width="210" x="1229.83" y="241.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#0050a0;fontSize=10;align=left;spacingLeft=8;fontStyle=1;" value="&#x1F433; Docker Build + Push imagen &#x2192; ACR" vertex="1">
+          <mxGeometry height="25" width="210" x="1229.83" y="272.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#274e13;fontSize=10;align=left;spacingLeft=8;fontStyle=1;" value="&#x1F680; az containerapp update &#x2192; Deploy" vertex="1">
+          <mxGeometry height="25" width="210" x="1229.83" y="303.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#274e13;fontSize=10;align=left;spacingLeft=8;" value="&#x1F511; Inject Env Vars desde Secrets" vertex="1">
+          <mxGeometry height="25" width="210" x="1229.83" y="334.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;align=left;spacingLeft=8;verticalAlign=top;arcSize=5;spacingTop=5;" value="GitHub Secrets:&#xa;AZURE_CREDENTIALS &#xB7; ACR_LOGIN_SERVER &#xB7; ACR_USERNAME &#xB7; ACR_PASSWORD&#xa;SPRING_R2DBC_URL &#xB7; SPRING_R2DBC_USERNAME &#xB7; SPRING_R2DBC_PASSWORD&#xa;APP_JWT_SECRET &#xB7; APP_CORS_ALLOWED_ORIGINS &#xB7; AZURE_RESOURCE_GROUP &#xB7; AZURE_CONTAINER_APP_NAME" vertex="1">
+          <mxGeometry height="148" width="596" x="1456.83" y="210.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-15" parent="1" style="rounded=1;dashed=1;strokeColor=#0078D4;strokeWidth=3;fillColor=#F0F8FF;opacity=40;arcSize=2;" value="" vertex="1">
+          <mxGeometry height="895" width="1614" x="464.83" y="388.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-16" parent="1" style="aspect=fixed;html=1;points=[];align=center;image;image=img/lib/azure2/general/Resource_Groups.svg;labelBackgroundColor=none;" value="" vertex="1">
+          <mxGeometry height="22" width="22" x="476.83" y="397.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-17" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;fontStyle=1;fontColor=#0078D4;" value="rg-finanzas (East US / Canada Central)" vertex="1">
+          <mxGeometry height="22" width="430" x="504.83" y="397.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-18" parent="1" style="aspect=fixed;html=1;points=[];align=center;image;fontSize=10;image=img/lib/azure2/containers/Container_Registries.svg;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;labelBackgroundColor=none;" value="finanzasacr&#xa;Container Registry" vertex="1">
+          <mxGeometry height="64" width="64" x="556.83" y="538.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-19" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#555555;" value="finanzasacr.azurecr.io &#xB7; SKU: Basic" vertex="1">
+          <mxGeometry height="16" width="164" x="506.83" y="622.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5FF;strokeColor=#0078D4;strokeWidth=2;fontSize=12;fontStyle=1;fontColor=#0078D4;verticalAlign=top;arcSize=2;spacingTop=10;" value="finanzas-env &#x2014; Container Apps Environment (East US)" vertex="1">
+          <mxGeometry height="380" width="640" x="834.83" y="458.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-21" parent="1" style="aspect=fixed;html=1;points=[];align=center;image;fontSize=10;image=img/lib/azure2/compute/App_Services.svg;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;labelBackgroundColor=none;" value="finanzas-app" vertex="1">
+          <mxGeometry height="66" width="66" x="1121.83" y="528.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-22" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#555555;" value="Spring Boot 4.0.5 &#xB7; Java 25 &#xB7; Puerto :9000&#xa;0.25 vCPU &#xB7; 0.5 GB &#xB7; min 0 / max 1 r&#xE9;plicas" vertex="1">
+          <mxGeometry height="28" width="260" x="1024.83" y="606.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-23" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=8;fontColor=#999999;fontStyle=2;" value="https://finanzas-app.wittywave-bcfc6077.eastus.azurecontainerapps.io" vertex="1">
+          <mxGeometry height="16" width="640" x="834.83" y="838.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-24" parent="1" style="aspect=fixed;html=1;points=[];align=center;image;fontSize=10;image=img/lib/azure2/databases/SQL_Database.svg;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;labelBackgroundColor=none;" value="finanzas-pgserver" vertex="1">
+          <mxGeometry height="66" width="66" x="1121.83" y="978.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-25" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#555555;" value="PostgreSQL Flexible Server v16 &#xB7; Tier B1ms (Canada Central)&#xa;finanzas-pgserver.postgres.database.azure.com &#xB7; :5432 &#xB7; SSL required" vertex="1">
+          <mxGeometry height="28" width="360" x="974.83" y="1054.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-26" parent="1" style="aspect=fixed;html=1;points=[];align=center;image;fontSize=10;image=img/lib/azure2/preview/Static_Apps.svg;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;labelBackgroundColor=none;" value="finanzas-frontend" vertex="1">
+          <mxGeometry height="66" width="66" x="1877.83" y="528.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-27" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#555555;" value="Angular 21 &#xB7; SSR &#xB7; Free tier&#xa;jolly-cliff-02e08840f.7.azurestaticapps.net" vertex="1">
+          <mxGeometry height="28" width="186" x="1832.83" y="616.01" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;verticalAlign=middle;" value="Usuario Final (Browser)" vertex="1">
+          <mxGeometry height="50" width="155" x="1830" y="910" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-29" edge="1" parent="1" source="5R21-6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;fontColor=#333333;fontSize=10;endArrow=block;endFill=1;" target="5R21-7" value="git push origin main">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-30" edge="1" parent="1" source="5R21-7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2088FF;fontColor=#1060CC;fontSize=10;fontStyle=1;endArrow=block;endFill=1;" target="5R21-8" value="on: push &#x2192; main">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-31" edge="1" parent="1" source="5R21-8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2088FF;endArrow=open;endFill=0;" target="5R21-9" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1047" y="223" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5R21-32" edge="1" parent="1" source="5R21-8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;fontColor=#0050a0;fontSize=10;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="5R21-18" value="&#x2462; docker push :sha + :latest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1046.83" y="384.01" />
+              <mxPoint x="588.83" y="384.01" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5R21-33" edge="1" parent="1" source="5R21-8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#274e13;fontSize=10;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="5R21-21" value="&#x2463; deploy new revision">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1046.83" y="384.01" />
+              <mxPoint x="1154.83" y="384.01" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5R21-34" edge="1" parent="1" source="5R21-18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#0078D4;fontColor=#0078D4;fontSize=10;endArrow=open;endFill=0;dashed=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="5R21-21" value="pull image">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="754.83" y="570.01" />
+              <mxPoint x="754.83" y="561.01" />
+              <mxPoint x="1121.83" y="561.01" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5R21-35" edge="1" parent="1" source="5R21-21" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#005A9E;fontColor=#005A9E;fontSize=10;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="5R21-24" value="R2DBC / SSL :5432">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-36" edge="1" parent="1" source="5R21-26" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#68217A;fontColor=#68217A;fontSize=10;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="5R21-21" value="HTTPS /api/* (REST API)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1830" y="561" />
+              <mxPoint x="1830" y="561" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5R21-37" edge="1" parent="1" source="5R21-28" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#68217A;fontColor=#68217A;fontSize=10;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="5R21-26" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="5R21-38" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;verticalAlign=top;arcSize=5;spacingTop=6;" value="Leyenda&#xa;&#x2501;&#x2501;&#x25B6;  Tr&#xE1;fico HTTPS (usuario &#x2192; app)&#xa;&#x2501;&#x2501;&#x25B6;  Pipeline CI/CD (push / deploy)&#xa;- - &#x25B7;  Pull imagen (ACR &#x2192; Container App)&#xa;&#x2501;&#x2501;&#x25B6;  R2DBC SSL (backend &#x2192; PostgreSQL)" vertex="1">
+          <mxGeometry height="72" width="280" x="486.83" y="1216.01" as="geometry" />
+        </mxCell>
+        <mxCell id="5R21-39" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;verticalAlign=top;arcSize=5;spacingTop=6;" value="Costos estimados (Free / B&#xE1;sico)&#xa;Container App: $0 idle (min 0 r&#xE9;plicas)&#xa;PostgreSQL B1ms: gratis 12 meses &#xB7; Static Web App: free&#xa;ACR Basic: ~$5/mes" vertex="1">
+          <mxGeometry height="72" width="300" x="779.83" y="1216.01" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

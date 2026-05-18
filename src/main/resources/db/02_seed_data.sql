@@ -90,3 +90,58 @@ INSERT INTO transactions (id, user_id, description, amount, category_id, type_id
 -- Gastos: Otros
 ('tx-030', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Regalo cumpleanos',           60.00, 'cat-other',         'type-expense', '2026-04-20', 'Cumple de Maria')
 ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================
+-- MODULO DE DEUDAS — Datos semilla
+-- =============================================================
+
+-- Tipos de deuda
+INSERT INTO debt_types (id, name, description, icon, active)
+VALUES
+    ('debt-type-credit-card', 'tarjeta_credito',   'Tarjeta de credito',       'credit_card',     TRUE),
+    ('debt-type-bank-loan',   'prestamo_bancario', 'Prestamo bancario',        'account_balance', TRUE),
+    ('debt-type-vehicle',     'credito_vehiculo',  'Credito de vehiculo',      'directions_car',  TRUE),
+    ('debt-type-mortgage',    'hipoteca',          'Credito hipotecario',      'home',            TRUE),
+    ('debt-type-informal',    'prestamo_informal', 'Prestamo informal (persona)', 'person',       TRUE),
+    ('debt-type-other',       'otro',              'Otro tipo de deuda',       'more_horiz',      TRUE)
+ON CONFLICT (name) DO NOTHING;
+
+-- Frecuencias de pago
+INSERT INTO payment_frequencies (id, name, days_between_payments)
+VALUES
+    ('freq-monthly',   'mensual',   30),
+    ('freq-biweekly',  'quincenal', 15)
+ON CONFLICT (name) DO NOTHING;
+
+-- Deudas de ejemplo para user@financiera.com
+INSERT INTO debts (
+    id, user_id, debt_type_id, frequency_id, creditor, description,
+    original_amount, current_balance, interest_rate, interest_rate_type,
+    total_installments, remaining_installments, installment_amount,
+    start_date, next_payment_date, status, notes
+) VALUES
+    (
+        'debt-001',
+        'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        'debt-type-bank-loan',
+        'freq-monthly',
+        'Bancolombia',
+        'Prestamo personal',
+        10000000.00, 7663241.06, 1.5, 'monthly',
+        12, 9, 917351.85,
+        '2026-01-01', '2026-06-01', 'active',
+        'Prestamo para remodelacion'
+    ),
+    (
+        'debt-002',
+        'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        'debt-type-credit-card',
+        'freq-monthly',
+        'Visa Davivienda',
+        'Tarjeta de credito',
+        2500000.00, 2500000.00, 2.5, 'monthly',
+        24, 24, 141788.00,
+        '2026-05-01', '2026-06-01', 'active',
+        NULL
+    )
+ON CONFLICT (id) DO NOTHING;

@@ -27,17 +27,17 @@ jobs:
 
     steps:
       # 1. Checkout del código
-      - name: Checkout
+      - name: 📥 Checkout código
         uses: actions/checkout@v4
 
       # 2. Login en Azure
-      - name: Azure Login
+      - name: 🔐 Azure Login (Service Principal)
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       # 3. Login en Azure Container Registry
-      - name: Login to ACR
+      - name: 🐳 Login to ACR
         uses: azure/docker-login@v2
         with:
           login-server: ${{ secrets.ACR_LOGIN_SERVER }}
@@ -45,14 +45,14 @@ jobs:
           password: ${{ secrets.ACR_PASSWORD }}
 
       # 4. Build y push de la imagen Docker
-      - name: Build and push Docker image
+      - name: 🏗️ Build and push Docker image
         run: |
           docker build -f docker/app/Dockerfile -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest .
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
 
       # 5. Deploy a Azure Container Apps
-      - name: Deploy to Container Apps
+      - name: 🚀 Deploy to Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
           resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}

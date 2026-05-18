@@ -10,6 +10,19 @@ import com.finanzas.personales.finanzas.transacciones.domain.usecase.UpdateTrans
 import com.finanzas.personales.finanzas.auth.domain.port.UserRepositoryPort;
 import com.finanzas.personales.finanzas.auth.domain.usecase.LoginUseCase;
 import com.finanzas.personales.finanzas.auth.domain.usecase.RegisterUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.port.DebtRepositoryPort;
+import com.finanzas.personales.finanzas.deudas.domain.port.DebtPaymentRepositoryPort;
+import com.finanzas.personales.finanzas.deudas.domain.port.DebtScheduleRepositoryPort;
+import com.finanzas.personales.finanzas.deudas.domain.port.DebtTypeRepositoryPort;
+import com.finanzas.personales.finanzas.deudas.domain.port.PaymentFrequencyRepositoryPort;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.CalculateAmortizationUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.CreateDebtUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.ListDebtsUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.GetDebtDetailUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.UpdateDebtUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.DeleteDebtUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.RegisterPaymentUseCase;
+import com.finanzas.personales.finanzas.deudas.domain.usecase.GetDebtSummaryUseCase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -122,5 +135,118 @@ public class ApplicationConfig {
     @Bean
     public UpdateTransactionUseCase updateTransactionUseCase(TransactionRepositoryPort transactionRepositoryPort) {
         return new UpdateTransactionUseCase(transactionRepositoryPort);
+    }
+
+    // =========================================================
+    // Deudas Use Cases
+    // =========================================================
+
+    /**
+     * Registra {@link CalculateAmortizationUseCase} como bean de Spring.
+     * Este use case es también inyectado en {@link CreateDebtUseCase}.
+     *
+     * @return instancia del caso de uso de cálculo de amortización francesa
+     */
+    @Bean
+    public CalculateAmortizationUseCase calculateAmortizationUseCase() {
+        return new CalculateAmortizationUseCase();
+    }
+
+    /**
+     * Registra {@link CreateDebtUseCase} como bean de Spring.
+     *
+     * @param debtRepositoryPort          puerto para persistir deudas
+     * @param debtScheduleRepositoryPort  puerto para persistir el cronograma
+     * @param debtTypeRepositoryPort      puerto para consultar tipos de deuda
+     * @param paymentFrequencyRepositoryPort puerto para consultar frecuencias de pago
+     * @param calculateAmortizationUseCase   caso de uso de cálculo de amortización
+     * @return instancia del caso de uso de creación de deuda
+     */
+    @Bean
+    public CreateDebtUseCase createDebtUseCase(
+            DebtRepositoryPort debtRepositoryPort,
+            DebtScheduleRepositoryPort debtScheduleRepositoryPort,
+            DebtTypeRepositoryPort debtTypeRepositoryPort,
+            PaymentFrequencyRepositoryPort paymentFrequencyRepositoryPort,
+            CalculateAmortizationUseCase calculateAmortizationUseCase) {
+        return new CreateDebtUseCase(debtRepositoryPort, debtScheduleRepositoryPort,
+                debtTypeRepositoryPort, paymentFrequencyRepositoryPort, calculateAmortizationUseCase);
+    }
+
+    /**
+     * Registra {@link ListDebtsUseCase} como bean de Spring.
+     *
+     * @param debtRepositoryPort puerto para consultar deudas
+     * @return instancia del caso de uso de listado de deudas
+     */
+    @Bean
+    public ListDebtsUseCase listDebtsUseCase(DebtRepositoryPort debtRepositoryPort) {
+        return new ListDebtsUseCase(debtRepositoryPort);
+    }
+
+    /**
+     * Registra {@link GetDebtDetailUseCase} como bean de Spring.
+     *
+     * @param debtRepositoryPort         puerto para consultar deudas
+     * @param debtScheduleRepositoryPort puerto para consultar el cronograma
+     * @return instancia del caso de uso de detalle de deuda
+     */
+    @Bean
+    public GetDebtDetailUseCase getDebtDetailUseCase(
+            DebtRepositoryPort debtRepositoryPort,
+            DebtScheduleRepositoryPort debtScheduleRepositoryPort) {
+        return new GetDebtDetailUseCase(debtRepositoryPort, debtScheduleRepositoryPort);
+    }
+
+    /**
+     * Registra {@link UpdateDebtUseCase} como bean de Spring.
+     *
+     * @param debtRepositoryPort puerto para actualizar deudas
+     * @return instancia del caso de uso de actualización de deuda
+     */
+    @Bean
+    public UpdateDebtUseCase updateDebtUseCase(DebtRepositoryPort debtRepositoryPort) {
+        return new UpdateDebtUseCase(debtRepositoryPort);
+    }
+
+    /**
+     * Registra {@link DeleteDebtUseCase} como bean de Spring.
+     *
+     * @param debtRepositoryPort puerto para eliminar deudas
+     * @return instancia del caso de uso de eliminación de deuda
+     */
+    @Bean
+    public DeleteDebtUseCase deleteDebtUseCase(DebtRepositoryPort debtRepositoryPort) {
+        return new DeleteDebtUseCase(debtRepositoryPort);
+    }
+
+    /**
+     * Registra {@link RegisterPaymentUseCase} como bean de Spring.
+     *
+     * @param debtRepositoryPort         puerto para actualizar deudas
+     * @param debtPaymentRepositoryPort  puerto para persistir pagos
+     * @param debtScheduleRepositoryPort puerto para actualizar el cronograma
+     * @param calculateAmortizationUseCase caso de uso de cálculo (para regenerar cronograma)
+     * @return instancia del caso de uso de registro de pagos
+     */
+    @Bean
+    public RegisterPaymentUseCase registerPaymentUseCase(
+            DebtRepositoryPort debtRepositoryPort,
+            DebtPaymentRepositoryPort debtPaymentRepositoryPort,
+            DebtScheduleRepositoryPort debtScheduleRepositoryPort,
+            CalculateAmortizationUseCase calculateAmortizationUseCase) {
+        return new RegisterPaymentUseCase(debtRepositoryPort, debtPaymentRepositoryPort,
+                debtScheduleRepositoryPort, calculateAmortizationUseCase);
+    }
+
+    /**
+     * Registra {@link GetDebtSummaryUseCase} como bean de Spring.
+     *
+     * @param debtRepositoryPort puerto para consultar resúmenes agregados
+     * @return instancia del caso de uso de resumen de deudas
+     */
+    @Bean
+    public GetDebtSummaryUseCase getDebtSummaryUseCase(DebtRepositoryPort debtRepositoryPort) {
+        return new GetDebtSummaryUseCase(debtRepositoryPort);
     }
 }

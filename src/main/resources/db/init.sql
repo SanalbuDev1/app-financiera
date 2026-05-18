@@ -54,6 +54,82 @@ CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions (user_id, type_
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions (user_id, category_id);
 
 -- =============================================================
+-- MODULO DE DEUDAS
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS debt_types (
+    id          VARCHAR(36)  PRIMARY KEY,
+    name        VARCHAR(50)  NOT NULL UNIQUE,
+    description VARCHAR(255),
+    icon        VARCHAR(50),
+    active      BOOLEAN      NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS payment_frequencies (
+    id                    VARCHAR(36)  PRIMARY KEY,
+    name                  VARCHAR(20)  NOT NULL UNIQUE,
+    days_between_payments INT          NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS debts (
+    id                     VARCHAR(36)    PRIMARY KEY,
+    user_id                VARCHAR(36)    NOT NULL REFERENCES users(id),
+    debt_type_id           VARCHAR(36)    NOT NULL REFERENCES debt_types(id),
+    frequency_id           VARCHAR(36)    NOT NULL REFERENCES payment_frequencies(id),
+    creditor               VARCHAR(100)   NOT NULL,
+    description            VARCHAR(255),
+    original_amount        DECIMAL(15,2)  NOT NULL CHECK (original_amount > 0),
+    current_balance        DECIMAL(15,2)  NOT NULL CHECK (current_balance >= 0),
+    interest_rate          DECIMAL(6,4)   NOT NULL CHECK (interest_rate >= 0),
+    interest_rate_type     VARCHAR(10)    NOT NULL CHECK (interest_rate_type IN ('monthly', 'annual')),
+    total_installments     INT            NOT NULL CHECK (total_installments > 0),
+    remaining_installments INT            NOT NULL CHECK (remaining_installments >= 0),
+    installment_amount     DECIMAL(15,2)  NOT NULL CHECK (installment_amount > 0),
+    start_date             DATE           NOT NULL,
+    next_payment_date      DATE,
+    status                 VARCHAR(20)    NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paid_off', 'defaulted')),
+    notes                  VARCHAR(500),
+    created_at             TIMESTAMP      NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_debts_user_id ON debts (user_id);
+CREATE INDEX IF NOT EXISTS idx_debts_status ON debts (user_id, status);
+CREATE INDEX IF NOT EXISTS idx_debts_next_payment ON debts (next_payment_date);
+
+CREATE TABLE IF NOT EXISTS debt_payments (
+    id                     VARCHAR(36)    PRIMARY KEY,
+    debt_id                VARCHAR(36)    NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
+    payment_date           DATE           NOT NULL,
+    total_amount           DECIMAL(15,2)  NOT NULL CHECK (total_amount > 0),
+    principal_amount       DECIMAL(15,2)  NOT NULL CHECK (principal_amount >= 0),
+    interest_amount        DECIMAL(15,2)  NOT NULL CHECK (interest_amount >= 0),
+    payment_type           VARCHAR(20)    NOT NULL CHECK (payment_type IN ('regular', 'extra')),
+    extra_payment_strategy VARCHAR(20)    CHECK (extra_payment_strategy IN ('reduce_installment', 'reduce_term')),
+    notes                  VARCHAR(500),
+    created_at             TIMESTAMP      NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_debt_payments_debt_id ON debt_payments (debt_id);
+CREATE INDEX IF NOT EXISTS idx_debt_payments_date ON debt_payments (debt_id, payment_date);
+
+CREATE TABLE IF NOT EXISTS debt_schedule (
+    id                 VARCHAR(36)    PRIMARY KEY,
+    debt_id            VARCHAR(36)    NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
+    installment_number INT            NOT NULL CHECK (installment_number > 0),
+    due_date           DATE           NOT NULL,
+    principal_amount   DECIMAL(15,2)  NOT NULL CHECK (principal_amount >= 0),
+    interest_amount    DECIMAL(15,2)  NOT NULL CHECK (interest_amount >= 0),
+    total_amount       DECIMAL(15,2)  NOT NULL CHECK (total_amount > 0),
+    balance_after      DECIMAL(15,2)  NOT NULL CHECK (balance_after >= 0),
+    status             VARCHAR(20)    NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue')),
+    created_at         TIMESTAMP      NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_debt_schedule_debt_id ON debt_schedule (debt_id);
+CREATE INDEX IF NOT EXISTS idx_debt_schedule_due_date ON debt_schedule (due_date, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_debt_schedule_unique ON debt_schedule (debt_id, installment_number);
+
+-- =============================================================
 -- 2. SEED DATA — Datos iniciales para dev/testing
 -- =============================================================
 
@@ -142,4 +218,59 @@ INSERT INTO transactions (id, user_id, description, amount, category_id, type_id
 ('tx-029', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Articulos hogar',             95.00, 'cat-shopping',      'type-expense', '2026-04-19', NULL),
 -- Gastos: Otros
 ('tx-030', 'b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Regalo cumpleanos',           60.00, 'cat-other',         'type-expense', '2026-04-20', 'Cumple de Maria')
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================
+-- MODULO DE DEUDAS — Datos semilla
+-- =============================================================
+
+-- Tipos de deuda
+INSERT INTO debt_types (id, name, description, icon, active)
+VALUES
+    ('debt-type-credit-card', 'tarjeta_credito',   'Tarjeta de credito',       'credit_card',     TRUE),
+    ('debt-type-bank-loan',   'prestamo_bancario', 'Prestamo bancario',        'account_balance', TRUE),
+    ('debt-type-vehicle',     'credito_vehiculo',  'Credito de vehiculo',      'directions_car',  TRUE),
+    ('debt-type-mortgage',    'hipoteca',          'Credito hipotecario',      'home',            TRUE),
+    ('debt-type-informal',    'prestamo_informal', 'Prestamo informal (persona)', 'person',       TRUE),
+    ('debt-type-other',       'otro',              'Otro tipo de deuda',       'more_horiz',      TRUE)
+ON CONFLICT (name) DO NOTHING;
+
+-- Frecuencias de pago
+INSERT INTO payment_frequencies (id, name, days_between_payments)
+VALUES
+    ('freq-monthly',   'mensual',   30),
+    ('freq-biweekly',  'quincenal', 15)
+ON CONFLICT (name) DO NOTHING;
+
+-- Deudas de ejemplo para user@financiera.com
+INSERT INTO debts (
+    id, user_id, debt_type_id, frequency_id, creditor, description,
+    original_amount, current_balance, interest_rate, interest_rate_type,
+    total_installments, remaining_installments, installment_amount,
+    start_date, next_payment_date, status, notes
+) VALUES
+    (
+        'debt-001',
+        'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        'debt-type-bank-loan',
+        'freq-monthly',
+        'Bancolombia',
+        'Prestamo personal',
+        10000000.00, 7663241.06, 1.5, 'monthly',
+        12, 9, 917351.85,
+        '2026-01-01', '2026-06-01', 'active',
+        'Prestamo para remodelacion'
+    ),
+    (
+        'debt-002',
+        'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        'debt-type-credit-card',
+        'freq-monthly',
+        'Visa Davivienda',
+        'Tarjeta de credito',
+        2500000.00, 2500000.00, 2.5, 'monthly',
+        24, 24, 141788.00,
+        '2026-05-01', '2026-06-01', 'active',
+        NULL
+    )
 ON CONFLICT (id) DO NOTHING;

@@ -1,0 +1,406 @@
+{
+  "info": {
+    "name": "Finanzas Personales API",
+    "_postman_id": "finanzas-personales-2026",
+    "description": "Colección completa de endpoints del backend de Finanzas Personales.\n\n**Flujo de uso:**\n1. Ejecutar **Login** (carpeta Auth) → el token JWT se guarda automáticamente en la variable `token`\n2. Todos los demás requests lo usan vía `Authorization: Bearer {{token}}`\n\n**Variables de entorno requeridas:**\n- `baseUrl` → http://localhost:9000\n- `token` → se auto-llena al hacer login",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:9000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "debtId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/health", "host": ["{{baseUrl}}"], "path": ["api", "health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login - Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('Token guardado:', json.token.substring(0, 30) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@financiera.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('Token guardado:', json.token.substring(0, 30) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@financiera.com\",\n  \"password\": \"user123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nuevo@ejemplo.com\",\n  \"password\": \"password123\",\n  \"name\": \"Usuario Nuevo\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Listar transacciones (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions?page=0&size=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transactions"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "15" },
+                { "key": "from", "value": "", "disabled": true },
+                { "key": "to", "value": "", "disabled": true },
+                { "key": "type", "value": "expense", "disabled": true },
+                { "key": "category", "value": "food", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar todas las transacciones",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/transactions/all", "host": ["{{baseUrl}}"], "path": ["api", "transactions", "all"] }
+          }
+        },
+        {
+          "name": "Resumen financiero",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions/summary?month=5&year=2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transactions", "summary"],
+              "query": [
+                { "key": "month", "value": "5" },
+                { "key": "year", "value": "2026" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear transacción",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Supermercado Éxito\",\n  \"amount\": 150000,\n  \"category\": \"food\",\n  \"type\": \"expense\",\n  \"transactionDate\": \"2026-05-17\",\n  \"notes\": \"Compra semanal\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/transactions", "host": ["{{baseUrl}}"], "path": ["api", "transactions"] }
+          }
+        },
+        {
+          "name": "Actualizar transacción",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Supermercado Éxito - Actualizado\",\n  \"amount\": 175000,\n  \"category\": \"food\",\n  \"type\": \"expense\",\n  \"transactionDate\": \"2026-05-17\",\n  \"notes\": \"Monto corregido\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/transactions/:id", "host": ["{{baseUrl}}"], "path": ["api", "transactions", ":id"], "variable": [{ "key": "id", "value": "REEMPLAZAR_CON_ID" }] }
+          }
+        },
+        {
+          "name": "Eliminar transacción",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/transactions/:id", "host": ["{{baseUrl}}"], "path": ["api", "transactions", ":id"], "variable": [{ "key": "id", "value": "REEMPLAZAR_CON_ID" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deudas",
+      "item": [
+        {
+          "name": "Resumen de deudas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/debts/summary", "host": ["{{baseUrl}}"], "path": ["api", "debts", "summary"] }
+          }
+        },
+        {
+          "name": "Listar deudas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/debts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts"],
+              "query": [
+                { "key": "status", "value": "active", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar deudas activas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/debts?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts"],
+              "query": [{ "key": "status", "value": "active" }]
+            }
+          }
+        },
+        {
+          "name": "Obtener detalle de deuda",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/debts/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts", ":id"],
+              "variable": [{ "key": "id", "value": "{{debtId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Crear deuda - Préstamo bancario mensual",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('debtId', json.id);",
+                  "    console.log('debtId guardado:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"creditor\": \"Bancolombia\",\n  \"description\": \"Crédito personal para remodelación\",\n  \"debtTypeId\": \"debt-type-bank-loan\",\n  \"frequencyId\": \"freq-monthly\",\n  \"originalAmount\": 10000000,\n  \"interestRate\": 1.5,\n  \"interestRateType\": \"monthly\",\n  \"totalInstallments\": 12,\n  \"startDate\": \"2026-05-17\",\n  \"notes\": \"Tasa mensual 1.5%\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/debts", "host": ["{{baseUrl}}"], "path": ["api", "debts"] }
+          }
+        },
+        {
+          "name": "Crear deuda - Tarjeta de crédito quincenal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('debtId', json.id);",
+                  "    console.log('debtId guardado:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"creditor\": \"Davivienda\",\n  \"description\": \"Tarjeta de crédito Visa\",\n  \"debtTypeId\": \"debt-type-credit-card\",\n  \"frequencyId\": \"freq-biweekly\",\n  \"originalAmount\": 5000000,\n  \"interestRate\": 26.4,\n  \"interestRateType\": \"annual\",\n  \"totalInstallments\": 24,\n  \"startDate\": \"2026-05-17\",\n  \"notes\": \"Tasa efectiva anual 26.4%\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/debts", "host": ["{{baseUrl}}"], "path": ["api", "debts"] }
+          }
+        },
+        {
+          "name": "Actualizar deuda",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"creditor\": \"Bancolombia\",\n  \"description\": \"Crédito personal - descripción actualizada\",\n  \"debtTypeId\": \"debt-type-bank-loan\",\n  \"frequencyId\": \"freq-monthly\",\n  \"originalAmount\": 10000000,\n  \"interestRate\": 1.5,\n  \"interestRateType\": \"monthly\",\n  \"totalInstallments\": 12,\n  \"startDate\": \"2026-05-17\",\n  \"notes\": \"Nota actualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/debts/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts", ":id"],
+              "variable": [{ "key": "id", "value": "{{debtId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Eliminar deuda",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/debts/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts", ":id"],
+              "variable": [{ "key": "id", "value": "{{debtId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Ver cronograma de amortización",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/debts/:id/schedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts", ":id", "schedule"],
+              "variable": [{ "key": "id", "value": "{{debtId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Registrar pago regular",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentDate\": \"2026-06-17\",\n  \"totalAmount\": 917351.85,\n  \"paymentType\": \"regular\",\n  \"notes\": \"Cuota mensual #1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/debts/:id/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts", ":id", "payments"],
+              "variable": [{ "key": "id", "value": "{{debtId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Registrar abono extraordinario (reduce cuota)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentDate\": \"2026-06-17\",\n  \"totalAmount\": 2000000,\n  \"paymentType\": \"extra\",\n  \"extraPaymentStrategy\": \"reduce_installment\",\n  \"notes\": \"Abono extraordinario — reduce cuota, mantiene plazo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/debts/:id/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts", ":id", "payments"],
+              "variable": [{ "key": "id", "value": "{{debtId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Registrar abono extraordinario (reduce plazo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentDate\": \"2026-06-17\",\n  \"totalAmount\": 2000000,\n  \"paymentType\": \"extra\",\n  \"extraPaymentStrategy\": \"reduce_term\",\n  \"notes\": \"Abono extraordinario — reduce plazo, mantiene cuota\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/debts/:id/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "debts", ":id", "payments"],
+              "variable": [{ "key": "id", "value": "{{debtId}}" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

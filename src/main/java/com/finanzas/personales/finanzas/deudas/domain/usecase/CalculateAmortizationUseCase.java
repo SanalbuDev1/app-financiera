@@ -45,6 +45,32 @@ public class CalculateAmortizationUseCase {
             int installments,
             String frequency,
             LocalDate startDate) {
+        return execute(principal, interestRate, interestRateType, installments, frequency, startDate, 1);
+    }
+
+    /**
+     * Calcula la tabla de amortización para una deuda, con número de cuota inicial configurable.
+     * Usado al regenerar el cronograma tras un abono extraordinario, para que los
+     * {@code installmentNumber} continúen desde la última cuota pagada y no colisionen
+     * con el UNIQUE INDEX {@code (debt_id, installment_number)}.
+     *
+     * @param principal            Monto del préstamo
+     * @param interestRate         Tasa de interés (porcentaje, ej: 1.5 para 1.5%)
+     * @param interestRateType     Tipo de tasa: "monthly" o "annual"
+     * @param installments         Número de cuotas a generar
+     * @param frequency            Frecuencia de pago: "mensual" o "quincenal"
+     * @param startDate            Fecha de inicio del cronograma
+     * @param startInstallmentNumber Número de la primera cuota generada (ej: 2 si la cuota 1 ya fue pagada)
+     * @return Resultado con la cuota fija y la tabla de amortización
+     */
+    public AmortizationResult execute(
+            BigDecimal principal,
+            BigDecimal interestRate,
+            String interestRateType,
+            int installments,
+            String frequency,
+            LocalDate startDate,
+            int startInstallmentNumber) {
 
         // Convertir la tasa al período correspondiente
         BigDecimal periodRate = calculatePeriodRate(interestRate, interestRateType, frequency);
@@ -52,9 +78,9 @@ public class CalculateAmortizationUseCase {
         // Calcular la cuota fija usando la fórmula francesa
         BigDecimal installmentAmount = calculateInstallment(principal, periodRate, installments);
 
-        // Generar la tabla de amortización
+        // Generar la tabla de amortización con el offset de número de cuota
         List<DebtScheduleItem> schedule = generateSchedule(
-                principal, periodRate, installmentAmount, installments, frequency, startDate);
+                principal, periodRate, installmentAmount, installments, frequency, startDate, startInstallmentNumber);
 
         // Calcular totales
         BigDecimal totalInterest = schedule.stream()
@@ -153,12 +179,36 @@ public class CalculateAmortizationUseCase {
             int installments,
             String frequency,
             LocalDate startDate) {
+        return generateSchedule(principal, periodRate, installmentAmount, installments, frequency, startDate, 1);
+    }
+
+    /**
+     * Genera la tabla de amortización con número de cuota inicial configurable.
+     *
+     * @param principal              Monto del préstamo
+     * @param periodRate             Tasa por período
+     * @param installmentAmount      Cuota fija
+     * @param installments           Número de cuotas a generar
+     * @param frequency              Frecuencia de pago
+     * @param startDate              Fecha de inicio
+     * @param startInstallmentNumber Número de la primera cuota generada
+     * @return Lista de ítems de la tabla de amortización
+     */
+    private List<DebtScheduleItem> generateSchedule(
+            BigDecimal principal,
+            BigDecimal periodRate,
+            BigDecimal installmentAmount,
+            int installments,
+            String frequency,
+            LocalDate startDate,
+            int startInstallmentNumber) {
 
         List<DebtScheduleItem> schedule = new ArrayList<>();
         BigDecimal balance = principal;
         LocalDate dueDate = startDate;
 
-        for (int i = 1; i <= installments; i++) {
+        for (int i = 0; i < installments; i++) {
+            int installmentNumber = startInstallmentNumber + i;
             // Calcular fecha de vencimiento
             dueDate = calculateNextDueDate(dueDate, frequency);
 
@@ -169,7 +219,7 @@ public class CalculateAmortizationUseCase {
             BigDecimal principalAmount;
             BigDecimal totalAmount;
 
-            if (i == installments) {
+            if (i == installments - 1) {
                 // Última cuota: ajustar para que el saldo quede en 0
                 principalAmount = balance;
                 totalAmount = principalAmount.add(interestAmount);
@@ -190,7 +240,7 @@ public class CalculateAmortizationUseCase {
 
             DebtScheduleItem item = DebtScheduleItem.builder()
                     .id(UUID.randomUUID().toString())
-                    .installmentNumber(i)
+                    .installmentNumber(installmentNumber)
                     .dueDate(dueDate)
                     .principalAmount(principalAmount)
                     .interestAmount(interestAmount)

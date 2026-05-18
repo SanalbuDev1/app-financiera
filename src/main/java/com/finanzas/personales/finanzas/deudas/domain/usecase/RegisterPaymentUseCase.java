@@ -60,6 +60,10 @@ public class RegisterPaymentUseCase {
                 .switchIfEmpty(Mono.error(
                         new IllegalArgumentException("Deuda no encontrada: " + command.getDebtId())))
                 .flatMap(debt -> {
+                    if ("paid_off".equalsIgnoreCase(debt.getStatus())) {
+                        return Mono.error(new IllegalStateException(
+                                "No se puede registrar un pago en una deuda ya saldada: " + debt.getId()));
+                    }
                     if ("extra".equalsIgnoreCase(command.getPaymentType())) {
                         return processExtraPayment(debt, command);
                     }
@@ -90,21 +94,28 @@ public class RegisterPaymentUseCase {
                             .createdAt(LocalDateTime.now())
                             .build();
 
-                    // Marcar la cuota como pagada, guardar el pago y actualizar la deuda
+                    // Marcar la cuota como pagada, guardar el pago y regenerar cronograma
                     return debtScheduleRepositoryPort.updateStatus(scheduleItem.getId(), "paid")
                             .then(debtPaymentRepositoryPort.save(payment))
                             .flatMap(savedPayment ->
-                                    updateDebtAfterRegularPayment(debt, scheduleItem)
+                                    updateDebtAndRegenerateSchedule(debt, scheduleItem)
                                             .thenReturn(savedPayment));
                 });
     }
 
     /**
-     * Actualiza el estado de la deuda después de un pago regular:
-     * reduce el saldo, decrementa cuotas restantes y avanza la fecha del próximo pago.
-     * Si el saldo llega a 0, marca la deuda como saldada.
+     * Actualiza el estado de la deuda y regenera el cronograma completo después de un pago regular.
+     *
+     * <p>Programación defensiva: en lugar de consultar el cronograma existente para obtener
+     * la próxima fecha de pago (lo que puede fallar y marcar incorrectamente la deuda como
+     * {@code paid_off}), se recalcula la amortización desde cero con el saldo y las cuotas
+     * restantes actuales. El {@code nextPaymentDate} se toma del primer ítem del nuevo cronograma.</p>
+     *
+     * @param debt     deuda a actualizar (mutada in-place)
+     * @param paidItem ítem del cronograma que acaba de ser pagado
+     * @return {@code Mono<Void>} cuando la operación completa
      */
-    private Mono<Void> updateDebtAfterRegularPayment(Debt debt, DebtScheduleItem paidItem) {
+    private Mono<Void> updateDebtAndRegenerateSchedule(Debt debt, DebtScheduleItem paidItem) {
         BigDecimal newBalance = debt.getCurrentBalance()
                 .subtract(paidItem.getPrincipalAmount())
                 .setScale(OUTPUT_SCALE, RoundingMode.HALF_UP);
@@ -116,28 +127,61 @@ public class RegisterPaymentUseCase {
         final int newRemaining = Math.max(0, debt.getRemainingInstallments() - 1);
 
         debt.setCurrentBalance(finalNewBalance);
-
         debt.setRemainingInstallments(newRemaining);
 
-        // Si el saldo es 0 o no quedan cuotas, la deuda queda saldada
+        // Si el saldo es 0 o no quedan cuotas, la deuda queda saldada — no hay cronograma que regenerar
         if (finalNewBalance.compareTo(BigDecimal.ZERO) == 0 || newRemaining <= 0) {
             debt.setStatus("paid_off");
             debt.setNextPaymentDate(null);
             return debtRepositoryPort.update(debt).then();
         }
 
-        // Obtener la siguiente cuota pendiente para actualizar nextPaymentDate
-        return debtScheduleRepositoryPort.findNextPendingByDebtId(debt.getId())
-                .flatMap(nextItem -> {
-                    debt.setNextPaymentDate(nextItem.getDueDate());
-                    return debtRepositoryPort.update(debt).then();
-                })
-                .switchIfEmpty(Mono.defer(() -> {
-                    // No quedan más cuotas pendientes → deuda saldada
-                    debt.setStatus("paid_off");
-                    debt.setNextPaymentDate(null);
-                    return debtRepositoryPort.update(debt).then();
-                }));
+        // Regenerar la amortización desde la fecha siguiente a la cuota recién pagada.
+        // startDate = paidItem.getDueDate() → generateSchedule le suma 1 período → primera cuota correcta.
+        LocalDate scheduleStartDate = paidItem.getDueDate();
+        int paidCount = debt.getTotalInstallments() - newRemaining;
+        int startInstallmentNumber = paidCount + 1;
+
+        AmortizationResult newAmortization = calculateAmortizationUseCase.execute(
+                finalNewBalance,
+                debt.getInterestRate(),
+                debt.getInterestRateType(),
+                newRemaining,
+                debt.getFrequencyName(),
+                scheduleStartDate,
+                startInstallmentNumber
+        );
+
+        // Sincronizar installmentAmount con el valor preciso recalculado
+        debt.setInstallmentAmount(newAmortization.getInstallmentAmount());
+
+        // nextPaymentDate proviene del primer ítem del cronograma fresco — nunca de una query al cronograma viejo
+        if (newAmortization.getSchedule().isEmpty()) {
+            debt.setStatus("paid_off");
+            debt.setNextPaymentDate(null);
+            return debtRepositoryPort.update(debt).then();
+        }
+
+        debt.setNextPaymentDate(newAmortization.getSchedule().get(0).getDueDate());
+
+        // Asignar debtId a los nuevos ítems del cronograma
+        List<DebtScheduleItem> newSchedule = newAmortization.getSchedule().stream()
+                .map(item -> DebtScheduleItem.builder()
+                        .id(item.getId())
+                        .debtId(debt.getId())
+                        .installmentNumber(item.getInstallmentNumber())
+                        .dueDate(item.getDueDate())
+                        .principalAmount(item.getPrincipalAmount())
+                        .interestAmount(item.getInterestAmount())
+                        .totalAmount(item.getTotalAmount())
+                        .balanceAfter(item.getBalanceAfter())
+                        .status(item.getStatus())
+                        .createdAt(item.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return debtRepositoryPort.update(debt)
+                .then(debtScheduleRepositoryPort.regenerateSchedule(debt.getId(), newSchedule).then());
     }
 
     // ── Pago extraordinario ───────────────────────────────────────────────────
@@ -194,15 +238,20 @@ public class RegisterPaymentUseCase {
             debt.setRemainingInstallments(newRemaining);
         }
 
-        // Regenerar el cronograma desde la próxima fecha de pago
-        LocalDate scheduleStartDate = computeScheduleStartDate(debt);
+        // Regenerar el cronograma desde la próxima fecha de pago.
+        // El installmentNumber arranca desde (totalInstallments - remainingInstallments + 1)
+        // para no colisionar con el UNIQUE INDEX de cuotas ya pagadas.
+        LocalDate scheduleStartDate = computeScheduleStartDate(debt, command.getPaymentDate());
+        int paidCount = debt.getTotalInstallments() - debt.getRemainingInstallments();
+        int startInstallmentNumber = paidCount + 1;
         AmortizationResult newAmortization = calculateAmortizationUseCase.execute(
                 finalNewBalance,
                 debt.getInterestRate(),
                 debt.getInterestRateType(),
                 debt.getRemainingInstallments(),
                 debt.getFrequencyName(),
-                scheduleStartDate
+                scheduleStartDate,
+                startInstallmentNumber
         );
 
         // Sincronizar installmentAmount con el valor preciso de la amortización
@@ -312,12 +361,19 @@ public class RegisterPaymentUseCase {
     /**
      * Calcula la fecha de inicio para generar el nuevo cronograma,
      * de modo que la primera cuota venza en {@code debt.nextPaymentDate}.
+     * Si {@code nextPaymentDate} es null, usa {@code fallbackDate} como base
+     * (la primera cuota vencerá en fallbackDate + 1 período).
      *
-     * @param debt deuda con nextPaymentDate y frequencyName
+     * @param debt         deuda con nextPaymentDate y frequencyName
+     * @param fallbackDate fecha de referencia cuando nextPaymentDate es null
      * @return fecha de inicio a pasar a {@link CalculateAmortizationUseCase}
      */
-    private LocalDate computeScheduleStartDate(Debt debt) {
+    private LocalDate computeScheduleStartDate(Debt debt, LocalDate fallbackDate) {
         LocalDate nextPaymentDate = debt.getNextPaymentDate();
+        if (nextPaymentDate == null) {
+            // nextPaymentDate nulo: usar fallbackDate como base del nuevo cronograma
+            return fallbackDate;
+        }
         if ("quincenal".equalsIgnoreCase(debt.getFrequencyName())) {
             return nextPaymentDate.minusDays(15);
         }
